@@ -10,27 +10,31 @@ class CarbonBlackLookup(tornado.web.RequestHandler):
         time.sleep(.5)
         nowtime = time.time()
         timestamp = datetime.datetime.fromtimestamp(nowtime).strftime('%Y-%m-%d %H:%M:%S')
-        print (hostname.upper().rstrip())
         cblookup = FindCBComputer.Run(hostname.upper().rstrip())
 
         if cblookup !=[]:
-            ostype=str(cblookup[0]['os_environment_display_string'])
-            registrationtime=str(cblookup[0]['registration_time'])
-            status=str(cblookup[0]['status'])
-            cbagent=True
-            print ("[+] Has a Carbon Black Agent")
-            response = { 'hostname': str(hostname),
-                         'has-agent': str(cbagent),
-                         'os': ostype,
-                         'status': status,
-                         'registrationtime': registrationtime,
-                         'timestamp': timestamp }
-            self.write(json.dumps(response))
+            response=[]
+            print ("[+] Hostname match found for "+str(hostname))
+            for computer in cblookup:
+                computer_name=computer['computer_name']
+                os_type=str(computer['os_environment_display_string'])
+                registration_time=str(computer['registration_time'])
+                status=str(computer['status'])
+                cbagent=True
+                computer['computer_name'] = { 'computer_name': str(computer_name),
+                             'has_agent': str(cbagent),
+                             'os': os_type,
+                             'status': status,
+                             'registration_time': registration_time,
+                             'timestamp': timestamp }
+                response.append(computer['computer_name'])
+            self.write(str(response))
+
         else:
             print ("[-] Has NO Carbon Black Agent")
             cbagent=False
-            response = { 'hostname': str(hostname),
-                         'has-agent': str(cbagent),
+            response = { 'computer_name': str(hostname),
+                         'has_agent': str(cbagent),
                          'timestamp': timestamp }
             self.write(json.dumps(response))
 
@@ -41,6 +45,6 @@ application = tornado.web.Application([
     ])
 
 if __name__ == "__main__":
-    application.listen(80)
     print ("CB Host Lookup API Started.")
+    application.listen("80")
     tornado.ioloop.IOLoop.instance().start()
